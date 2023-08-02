@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from blog.models import Comment, Post, Tag
+from django.db.models import Count
 
 
 def get_related_posts_count(tag):
@@ -30,7 +31,9 @@ def serialize_tag(tag):
 def index(request):
     posts = {}
     popular_posts = []
-    for post in Post.objects.all():
+    all_posts = Post.objects.annotate(Count('likes'))
+
+    for post in all_posts:
         posts[post] = get_likes_count(post)
 
     while len(popular_posts) < 5:
@@ -129,4 +132,4 @@ def contacts(request):
 
 
 def get_likes_count(post):
-    return post.likes.count()
+    return post.likes__count
