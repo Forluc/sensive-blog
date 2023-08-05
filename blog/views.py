@@ -22,7 +22,7 @@ def serialize_post_optimized(post):
         'title': post.title,
         'teaser_text': post.text[:200],
         'author': post.author.username,
-        'comments_amount': len(Comment.objects.filter(post=post)),
+        'comments_amount': post.comments__count,
         'image_url': post.image.url if post.image else None,
         'published_at': post.published_at,
         'slug': post.slug,
@@ -39,11 +39,12 @@ def serialize_tag(tag):
 
 
 def index(request):
-    most_popular_posts = Post.objects.prefetch_related('author').annotate(count_likes=Count('likes')).order_by(
-        '-count_likes')[:5]
+    most_popular_posts = Post.objects.prefetch_related('author').annotate(Count('likes', distinct=True),
+                                                                          Count('comments', distinct=True)).order_by(
+        '-likes__count')[:5]
 
-    fresh_posts = Post.objects.prefetch_related('author').order_by('published_at')
-    most_fresh_posts = list(fresh_posts)[-5:]
+    most_fresh_posts = Post.objects.prefetch_related('author').annotate(Count('comments', distinct=True)).order_by(
+        '-published_at')[:5]
 
     most_popular_tags = Tag.objects.annotate(count_posts=Count('posts')).order_by('-posts')[:5]
 
@@ -129,8 +130,8 @@ def contacts(request):
 
 
 def get_likes_count(post):
-    return post.count_likes
+    return post.likes__count
 
 
 def get_related_posts_count(tag):
-    return tag.count_posts
+    return tag.posts.count()
