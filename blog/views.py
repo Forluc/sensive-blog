@@ -17,6 +17,13 @@ def serialize_post(post):
     }
 
 
+def serialize_tag(tag):
+    return {
+        'title': tag.title,
+        'posts_with_tag': Post.objects.filter(tags=tag).count(),
+    }
+
+
 def serialize_post_optimized(post):
     return {
         'title': post.title,
@@ -31,17 +38,17 @@ def serialize_post_optimized(post):
     }
 
 
-def serialize_tag(tag):
-    return {
-        'title': tag.title,
-        'posts_with_tag': len(Post.objects.filter(tags=tag)),
-    }
-
-
 def index(request):
-    most_popular_posts = Post.objects.prefetch_related('author').annotate(Count('likes', distinct=True),
-                                                                          Count('comments', distinct=True)).order_by(
+    most_popular_posts = Post.objects.prefetch_related('author').annotate(Count('likes', distinct=True)).order_by(
         '-likes__count')[:5]
+    most_popular_posts_ids = [post.id for post in most_popular_posts]
+
+    posts_with_comments = Post.objects.filter(id__in=most_popular_posts_ids).annotate(Count('comments')).values_list(
+        'id', 'comments__count')
+    count_for_id = dict(posts_with_comments)
+
+    for post in most_popular_posts:
+        post.comments__count = count_for_id[post.id]
 
     most_fresh_posts = Post.objects.prefetch_related('author').annotate(Count('comments', distinct=True)).order_by(
         '-published_at')[:5]
