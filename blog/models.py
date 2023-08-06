@@ -25,6 +25,7 @@ class PostQuerySet(models.QuerySet):
             post.comments__count = count_for_id[post.id]
         return most_popular_posts
 
+
 class Post(models.Model):
     title = models.CharField('Заголовок', max_length=200)
     text = models.TextField('Текст')
